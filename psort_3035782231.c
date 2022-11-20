@@ -6,6 +6,31 @@
 # Student name and No.:	Lee Kwok Lam, 3035782231
 # Development platform:	WSL 2 Ubuntu 20.04 on Windows 11
 # Remark:
+
+Here is the outline of my implementation:
+
+[Phase 3]
+- All worker threads work concurrently to read their respective subsequences to compute the sizes of the partitions.
+
+- These threads all read from the global intarr concurrently. Because no any two subsequences overlap with each other, and there is no writing to intarr, therefore there is no need for mutex/semaphore.
+
+- The computed partition sizes are stored into a global 1D array partition_sizes. The writes are done randomly with indexes: th_idx * p + prt_idx. Similar to intarr, there is no need for mutex/semaphore.
+
+[between Phase 3 & 4]
+- The main thread waits for all worker threads to join back. This ensures partition_sizes is complete.
+
+
+[Phase 4]
+- All worker threads work concurrently to read from partition_sizes. With the combination of (1) thread itself's th_idx, (2) target_th_idx, and (3) the sizes of the left side partitions of the target thread, it is possible to deduce a global absolute index to start reading the desired partition from intarr.
+
+- Similarly, since every single memory location or both intarr and partition_sizes is read only once and only by the designated thread, hence there is no race condition.
+
+- Each thread reads the partitions into a heap array which I call bucket. - Each thread returns this bucket (which is a pointer to 1st element) to the main thread.
+
+
+[after Phase 4]
+- The main thread waits for all workers to finish and simply reads from all the buckets from th_0, th_1, ... , th_p-1 sequentially and replaces each element of intarr.
+
 */
 
 #include <stdio.h>
