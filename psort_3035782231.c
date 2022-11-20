@@ -326,11 +326,11 @@ int compare(const void *a, const void *b)
 int checking(unsigned int *list, long size)
 {
     long i;
-    // printf("First : %d\n", list[0]);
-    // printf("At 25%%: %d\n", list[size / 4]);
-    // printf("At 50%%: %d\n", list[size / 2]);
-    // printf("At 75%%: %d\n", list[3 * size / 4]);
-    // printf("Last  : %d\n", list[size - 1]);
+    printf("First : %d\n", list[0]);
+    printf("At 25%%: %d\n", list[size / 4]);
+    printf("At 50%%: %d\n", list[size / 2]);
+    printf("At 75%%: %d\n", list[3 * size / 4]);
+    printf("Last  : %d\n", list[size - 1]);
     for (i = 0; i < size - 1; i++)
         if (list[i] > list[i + 1])
             return 0;
