@@ -255,10 +255,10 @@ int main(int argc, char **argv)
 // and returns the samples to the main thread
 void *phase1(void *argc)
 {
-    int i = *(int *)argc;
-    int start = i * size / p;
-    int end = (i + 1) * size / p;
-    if (i == p - 1)
+    int th = *(int *)argc;
+    int start = th * size / p;
+    int end = (th + 1) * size / p;
+    if (th == p - 1)
         end = size;
 
     qsort(intarr + start, end - start, sizeof(unsigned int), compare);
@@ -273,36 +273,32 @@ void *phase1(void *argc)
 // computes its own partition sizes
 void *phase3(void *argc)
 {
-    int i = *(int *)argc;
-    int start = i * size / p;
-    int end = (i + 1) * size / p;
-    if (i == p - 1)
+    int th = *(int *)argc;
+    int start = th * size / p;
+    int end = (th + 1) * size / p;
+    if (th == p - 1)
         end = size;
 
     int pivot_idx = 0;
     int prt_size = 0; // the size of the current partition
-    for (int j = start; j < end; j++)
+    for (int j = start; j < end; j++, prt_size++)
     {
         if (intarr[j] <= pivot_values[pivot_idx])
-        {
-            prt_size++;
             continue;
-        }
         // keep assigning prt_size to the current partition
         // until the next pivot value is reached
         while (pivot_idx < p - 1 && intarr[j] > pivot_values[pivot_idx])
         {
-            partition_sizes[i * p + pivot_idx] = prt_size;
+            partition_sizes[th * p + pivot_idx] = prt_size;
             prt_size = 0;
             pivot_idx++;
         }
-        prt_size++;
     }
     // take care of the last partition
     if (prt_size > 0)
-        partition_sizes[i * p + pivot_idx] = prt_size;
+        partition_sizes[th * p + pivot_idx] = prt_size;
 
-    // printf("(Phase3) TH[%d] ", i);
+    // printf("(Phase3) TH[%d] ", th);
     // for (int j = start; j < end; j++)
     // 	printf("%d ", intarr[j]);
     // printf("\n");
@@ -310,24 +306,25 @@ void *phase3(void *argc)
 
 void *phase4(void *argc)
 {
-    int i = *(int *)argc;
+    int th = *(int *)argc;
     int *bucket = (int *)malloc(size * sizeof(int));
     int bucket_idx = 0;
-    for (int target_th = 0; target_th < p; target_th++)
+    for (int src_th = 0; src_th < p; src_th++)
     {
-        int start = target_th * size / p;
-        int partition_size;
-        for (int j = 0; j < i; j++)
+        int start = src_th * size / p;
+        int prt_size;
+        for (int j = 0; j < th; j++, start += prt_size)
         {
-            partition_size = partition_sizes[target_th * p + j];
-            start += partition_size;
+            do
+                prt_size = partition_sizes[src_th * p + j];
+            while (prt_size == -1);
         }
-        partition_size = partition_sizes[target_th * p + i];
+        prt_size = partition_sizes[src_th * p + th];
 
         // useful for debug
-        // printf("TH[%d] [%d] \t+ %d\n", i, start, partition_size);
+        // printf("TH[%d] [%d] \t+ %d\n", th, start, prt_size);
 
-        for (int j = 0; j < partition_size; j++)
+        for (int j = 0; j < prt_size; j++)
             bucket[bucket_idx++] = intarr[start + j];
     }
     qsort(bucket, bucket_idx, sizeof(unsigned int), compare);
@@ -338,7 +335,7 @@ void *phase4(void *argc)
     // 	printf("%d ", bucket[j]);
     // printf("\n");
 
-    bucket_sizes[i] = bucket_idx;
+    bucket_sizes[th] = bucket_idx;
 
     return (void *)bucket;
 }
